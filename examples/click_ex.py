@@ -1,3 +1,4 @@
+from time import sleep
 import click
 from cli_telemetry.telemetry import start_session, end_session, profile, add_tag, profile_block
 

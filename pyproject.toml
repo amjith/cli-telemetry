@@ -1,0 +1,30 @@
+[project]
+name = "cli-telemetry"
+dynamic = ["version"]
+description = "OpenTelemetry-based instrumentation for CLI tools"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "BSD" }
+authors = [{ name = "Amjith Ramanujam", email = "amjith.r@gmail.com" }]
+dependencies = [
+    "opentelemetry-api>=1.12.0",
+    "opentelemetry-sdk>=1.12.0",
+    "opentelemetry-exporter-otlp>=1.12.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/amjith/cli-telemetry"
+Repository = "https://github.com/amjith/cli-telemetry"
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff>=0.11.8"]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+
+
+[tool.ruff]
+line-length = 140

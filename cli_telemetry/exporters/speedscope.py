@@ -20,6 +20,7 @@ import argparse
 import sys
 from datetime import datetime
 
+
 def list_traces(db_path: str):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
@@ -41,15 +42,19 @@ def list_traces(db_path: str):
         ts = datetime.fromtimestamp(first_us / 1_000_000).isoformat()
         print(f"{trace_id}\t{count}\t{ts}")
 
+
 def load_spans(db_path: str, trace_id: str):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         SELECT span_id, parent_span_id, name, start_time, end_time
           FROM otel_spans
          WHERE trace_id = ?
       ORDER BY start_time
-    """, (trace_id,))
+    """,
+        (trace_id,),
+    )
     rows = cur.fetchall()
     conn.close()
 
@@ -57,11 +62,12 @@ def load_spans(db_path: str, trace_id: str):
     for span_id, parent_id, name, start_us, end_us in rows:
         spans[span_id] = {
             "parent": parent_id,
-            "name":   name,
-            "start":  start_us,
-            "end":    end_us,
+            "name": name,
+            "start": start_us,
+            "end": end_us,
         }
     return spans
+
 
 def build_path(span_id: str, spans: dict):
     path = []
@@ -70,6 +76,7 @@ def build_path(span_id: str, spans: dict):
         path.append(current["name"])
         current = spans.get(current["parent"])
     return list(reversed(path))
+
 
 def export_folded(spans: dict, min_us: int = 1):
     """
@@ -83,27 +90,14 @@ def export_folded(spans: dict, min_us: int = 1):
         stack = build_path(sid, spans)
         print(f"{';'.join(stack)} {dur}")
 
+
 def main():
-    p = argparse.ArgumentParser(
-        description="Export or list traces from SQLite spans DB for Speedscope"
-    )
-    p.add_argument(
-        "--db", "-d", required=True,
-        help="Path to telemetry.db"
-    )
+    p = argparse.ArgumentParser(description="Export or list traces from SQLite spans DB for Speedscope")
+    p.add_argument("--db", "-d", required=True, help="Path to telemetry.db")
     group = p.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "--trace", "-t",
-        help="Trace ID to export"
-    )
-    group.add_argument(
-        "--list", action="store_true",
-        help="List all trace IDs, span counts, and first-captured timestamps"
-    )
-    p.add_argument(
-        "--min-us", type=int, default=1,
-        help="Omit spans shorter than this (in μs)"
-    )
+    group.add_argument("--trace", "-t", help="Trace ID to export")
+    group.add_argument("--list", action="store_true", help="List all trace IDs, span counts, and first-captured timestamps")
+    p.add_argument("--min-us", type=int, default=1, help="Omit spans shorter than this (in μs)")
     args = p.parse_args()
 
     if args.list:
@@ -115,5 +109,7 @@ def main():
         sys.exit(f"No spans found for trace {args.trace!r}")
     export_folded(spans, min_us=args.min_us)
 
+
 if __name__ == "__main__":
     main()
+

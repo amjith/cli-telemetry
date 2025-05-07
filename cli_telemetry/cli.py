@@ -91,7 +91,8 @@ def main():
         traces.append((trace_id, ts, command))
     click.echo("\nAvailable traces:")
     for idx, (trace_id, ts, command) in enumerate(traces, start=1):
-        dt = datetime.fromtimestamp(ts / 1_000_000).isoformat()
+        # Format timestamp to seconds precision (no fractional part)
+        dt = datetime.fromtimestamp(ts / 1_000_000).isoformat(timespec='seconds')
         if command:
             click.echo(f"  [{idx}] {trace_id} (command: {command!r} at {dt})")
         else:

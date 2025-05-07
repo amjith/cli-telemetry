@@ -11,7 +11,9 @@ from datetime import datetime
 from cli_telemetry.exporters import speedscope
 from cli_telemetry.exporters import view_flame
 from rich import print
+from rich.prompt import Prompt
 from rich.tree import Tree
+import json
 
 
 @click.command()
@@ -41,34 +43,67 @@ def main():
     click.echo("Available databases:")
     for idx, (service, path) in enumerate(dbs, start=1):
         click.echo(f"  [{idx}] {service} ({path})")
-    db_choice = click.prompt(
-        "Select database", type=click.IntRange(1, len(dbs))
+    db_indices = [str(i) for i in range(1, len(dbs) + 1)]
+    # Default to the first database if none is entered
+    db_choice = int(
+        Prompt.ask(
+            "Select database",
+            choices=db_indices,
+            default=db_indices[0],
+        )
     )
     _, selected_db = dbs[db_choice - 1]
 
-    # List latest 10 traces in the selected database
+    # List latest 10 traces in the selected database, including root command tag if present
     conn = sqlite3.connect(selected_db)
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT trace_id, MIN(start_time) AS ts
-        FROM otel_spans
-        GROUP BY trace_id
-        ORDER BY ts DESC
-        LIMIT 10
+        SELECT t.trace_id, t.ts, s.attributes
+        FROM (
+            SELECT trace_id, MIN(start_time) AS ts
+            FROM otel_spans
+            GROUP BY trace_id
+            ORDER BY ts DESC
+            LIMIT 10
+        ) AS t
+        LEFT JOIN otel_spans AS s
+          ON s.trace_id = t.trace_id
+         AND s.name = 'cli_invocation'
+         AND s.start_time = t.ts
         """
     )
-    traces = cur.fetchall()
+    rows = cur.fetchall()
     conn.close()
-    if not traces:
+    if not rows:
         click.echo("No traces found in the selected database.", err=True)
         raise SystemExit(1)
+    # Parse trace list, extracting command from root span attributes
+    traces = []  # list of (trace_id, ts, command)
+    for trace_id, ts, attr_json in rows:
+        command = None
+        if attr_json:
+            try:
+                attrs = json.loads(attr_json)
+                command = attrs.get("cli.command")
+            except Exception:
+                command = None
+        traces.append((trace_id, ts, command))
     click.echo("\nAvailable traces:")
-    for idx, (trace_id, ts) in enumerate(traces, start=1):
+    for idx, (trace_id, ts, command) in enumerate(traces, start=1):
         dt = datetime.fromtimestamp(ts / 1_000_000).isoformat()
-        click.echo(f"  [{idx}] {trace_id} (started at {dt})")
-    trace_choice = click.prompt(
-        "Select trace", type=click.IntRange(1, len(traces))
+        if command:
+            click.echo(f"  [{idx}] {trace_id} (command: {command!r} at {dt})")
+        else:
+            click.echo(f"  [{idx}] {trace_id} (started at {dt})")
+    trace_indices = [str(i) for i in range(1, len(traces) + 1)]
+    # Default to the first trace if none is entered
+    trace_choice = int(
+        Prompt.ask(
+            "Select trace",
+            choices=trace_indices,
+            default=trace_indices[0],
+        )
     )
     trace_id = traces[trace_choice - 1][0]
 

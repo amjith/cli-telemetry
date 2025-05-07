@@ -9,7 +9,9 @@ from cli_telemetry import telemetry
 @pytest.fixture(autouse=True)
 def isolate_home(tmp_path, monkeypatch):
     # Redirect HOME to a temp directory for isolation
+    # Redirect HOME and XDG_DATA_HOME to a temp directory for isolation
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
     # Reload telemetry module to reset state
     importlib.reload(telemetry)
     yield
@@ -19,9 +21,10 @@ def isolate_home(tmp_path, monkeypatch):
 def test_service_files_created(tmp_path):
     service = "testsvc"
     telemetry.init_telemetry(service)
-    home = tmp_path
-    db_file = home / f".{service}_telemetry.db"
-    uid_file = home / f".{service}_telemetry_user_id"
+    # Files live under XDG_DATA_HOME/cli-telemetry/<service>
+    base = tmp_path / "cli-telemetry" / service
+    db_file = base / "telemetry.db"
+    uid_file = base / "telemetry_user_id"
     assert db_file.exists()
     assert uid_file.exists()
     # DB table exists
@@ -46,7 +49,8 @@ def test_profile_decorator_writes_span(tmp_path):
     teleport.end_session()
 
     assert result == "bar"
-    db_file = tmp_path / f".{service}_telemetry.db"
+    # DB file under XDG_DATA_HOME/cli-telemetry/<service>
+    db_file = tmp_path / "cli-telemetry" / service / "telemetry.db"
     conn = sqlite3.connect(str(db_file))
     cur = conn.cursor()
     cur.execute("SELECT name FROM otel_spans WHERE name='foo'")
@@ -65,7 +69,8 @@ def test_profile_block_and_add_tag(tmp_path):
 
     telemetry.end_session()
 
-    db_file = tmp_path / f".{service}_telemetry.db"
+    # DB file under XDG_DATA_HOME/cli-telemetry/<service>
+    db_file = tmp_path / "cli-telemetry" / service / "telemetry.db"
     conn = sqlite3.connect(str(db_file))
     cur = conn.cursor()
     cur.execute("SELECT attributes FROM otel_spans WHERE name='my_block'")

@@ -4,6 +4,7 @@ cli.py
 
 Command-line interface for browsing and visualizing telemetry traces as flame graphs.
 """
+
 import os
 import sqlite3
 import click
@@ -28,10 +29,7 @@ def main():
         click.echo("No telemetry databases found.", err=True)
         raise SystemExit(1)
     # Find available service databases
-    services = sorted(
-        d for d in os.listdir(base_dir)
-        if os.path.isdir(os.path.join(base_dir, d))
-    )
+    services = sorted(d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d)))
     dbs = []  # list of (service, path)
     for service in services:
         db_path = os.path.join(base_dir, service, "telemetry.db")
@@ -92,7 +90,7 @@ def main():
     click.echo("\nAvailable traces:")
     for idx, (trace_id, ts, command) in enumerate(traces, start=1):
         # Format timestamp to seconds precision (no fractional part)
-        dt = datetime.fromtimestamp(ts / 1_000_000).isoformat(timespec='seconds')
+        dt = datetime.fromtimestamp(ts / 1_000_000).isoformat(timespec="seconds")
         if command:
             click.echo(f"  [{idx}] {trace_id} (command: {command!r} at {dt})")
         else:
@@ -117,6 +115,7 @@ def main():
     tree = Tree(f"[b]root[/] • {human_total} (100%)")
     view_flame.render(root, tree, total)
     print(tree)
+
 
 if __name__ == "__main__":
     main()

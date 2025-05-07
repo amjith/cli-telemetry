@@ -1,10 +1,9 @@
-import os
 import sqlite3
 import importlib
 import json
 import pytest
 
-import telemetry
+from cli_telemetry import telemetry
 
 
 @pytest.fixture(autouse=True)
@@ -28,9 +27,7 @@ def test_service_files_created(tmp_path):
     # DB table exists
     conn = sqlite3.connect(str(db_file))
     cur = conn.cursor()
-    cur.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='otel_spans'"
-    )
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='otel_spans'")
     assert cur.fetchone() is not None
     conn.close()
 

@@ -108,18 +108,10 @@ def main():
     )
     trace_id = traces[trace_choice - 1][0]
 
-    # Load spans and build folded stacks
+    # Load spans and build a tree preserving start-time ordering
     spans = speedscope.load_spans(selected_db, trace_id)
-    folded_lines = []
-    for span_id, info in spans.items():
-        duration = info["end"] - info["start"]
-        if duration <= 0:
-            continue
-        path = speedscope.build_path(span_id, spans)
-        folded_lines.append(f"{';'.join(path)} {duration}")
-
-    # Render as a flame graph in the terminal
-    root = view_flame.build_tree(folded_lines)
+    # Build tree with aggregated durations and earliest start timestamp
+    root = view_flame.build_tree_from_spans(spans, speedscope.build_path)
     total = root.get("_time", 0)
     human_total = view_flame.format_time(total)
     tree = Tree(f"[b]root[/] • {human_total} (100%)")

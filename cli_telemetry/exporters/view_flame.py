@@ -10,6 +10,7 @@ using Rich, with human-friendly time units.
 import sys
 from rich import print
 from rich.tree import Tree
+from rich.columns import Columns
 
 def format_time(us: int) -> str:
     """Convert microseconds to a human-friendly string."""
@@ -43,15 +44,52 @@ def build_tree(folded_lines):
             node['_time'] += dur
     return root
 
+def build_tree_from_spans(spans: dict, build_path_func) -> dict:
+    """Build a nested tree with aggregated durations and earliest start times per node."""
+    root = {'_time': 0, '_start': float('inf'), 'children': {}}
+    for span_id, info in spans.items():
+        start_us = info.get('start', 0)
+        dur = info.get('end', 0) - start_us
+        path = build_path_func(span_id, spans)
+        node = root
+        node['_time'] += dur
+        if start_us < node.get('_start', float('inf')):
+            node['_start'] = start_us
+        for frame in path:
+            children = node['children']
+            if frame not in children:
+                children[frame] = {'_time': 0, '_start': float('inf'), 'children': {}}
+            node = children[frame]
+            node['_time'] += dur
+            if start_us < node.get('_start', float('inf')):
+                node['_start'] = start_us
+    return root
+
 def render(node, tree: Tree, total_time: int):
-    # Sort children by descending time
-    for name, child in sorted(node['children'].items(),
-                              key=lambda kv: kv[1]['_time'], reverse=True):
-        dur = child['_time']
-        pct = dur / total_time * 100
-        human = format_time(dur)
-        branch = tree.add(f"[bold]{name}[/] • {human} ({pct:.1f}%)")
-        render(child, branch, total_time)
+    """
+    Recursively render the flame-graph tree. If a node's children are all leaves,
+    display them in a single horizontal row as columns; otherwise recurse normally.
+    """
+    children = node.get('children', {})
+    # If all children are leaves, render them as horizontal columns under this node
+    if children and all(not child.get('children') for child in children.values()):
+        # Sort leaves by earliest start time
+        items = sorted(children.items(), key=lambda kv: kv[1].get('_start', 0))
+        cols = []
+        for name, child in items:
+            dur = child['_time']
+            pct = (dur / total_time * 100) if total_time else 0
+            human = format_time(dur)
+            cols.append(f"[bold]{name}[/] • {human} ({pct:.1f}%)")
+        tree.add(Columns(cols, expand=True))
+    else:
+        # Nested children: render each as its own branch, sorted by earliest start
+        for name, child in sorted(children.items(), key=lambda kv: kv[1].get('_start', 0)):
+            dur = child['_time']
+            pct = dur / total_time * 100 if total_time else 0
+            human = format_time(dur)
+            branch = tree.add(f"[bold]{name}[/] • {human} ({pct:.1f}%)")
+            render(child, branch, total_time)
 
 def main():
     folded = sys.stdin.readlines()

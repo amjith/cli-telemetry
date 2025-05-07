@@ -5,5 +5,5 @@
      * [X] Then all traces from selected DB
      * [X] Then the visualization
 
-* [ ] Setup GH actions
+* [X] Setup GH actions
 * [ ] Release the first version

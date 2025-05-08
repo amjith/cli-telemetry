@@ -2,7 +2,7 @@
 Instrumentation for Click commands to auto-wrap their invocation in telemetry spans.
 """
 
-from ..telemetry import Span, add_tag
+from ..telemetry import Span, add_tags
 
 
 def auto_instrument_click():
@@ -10,7 +10,7 @@ def auto_instrument_click():
     import os
 
     if os.environ.get("CLI_TELEMETRY_DISABLE_CLICK_PATCH") == "1":
-        return  # User has opted out of monkeypatching
+        return  # User has opted out of instrumentation
 
     try:
         import click
@@ -20,9 +20,14 @@ def auto_instrument_click():
                 # Assumes init_telemetry() already called by app
                 with Span(self.name, attributes={"cli.command": ctx.command_path}):
                     try:
-                        for param in self.params:
-                            if param.name in ctx.params:
-                                add_tag(f"args.{param.name}", ctx.params[param.name])
+                        # Collect all CLI args as tags
+                        tags = {
+                            f"args.{param.name}": ctx.params[param.name]
+                            for param in self.params
+                            if param.name in ctx.params
+                        }
+                        if tags:
+                            add_tags(tags)
                     except Exception:
                         pass
                     return original_invoke(self, ctx)

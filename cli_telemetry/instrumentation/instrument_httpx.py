@@ -5,7 +5,7 @@ Instrumentation for HTTPX requests to auto-wrap them in telemetry spans.
 import os
 import time
 
-from ..telemetry import Span, add_tag
+from ..telemetry import Span, add_tags
 
 
 def auto_instrument_httpx():
@@ -26,18 +26,20 @@ def auto_instrument_httpx():
         def request_with_span(self, method, url, *args, **kwargs):
             start = time.time()
             with Span("httpx.request"):
-                add_tag("http.method", method)
-                add_tag("http.url", str(url))
                 response = original_request(self, method, url, *args, **kwargs)
-                # Capture status code
+                # Capture status code and latency
                 try:
                     status = response.status_code
                 except Exception:
                     status = None
-                add_tag("http.status_code", status)
-                # Capture latency in milliseconds
                 elapsed_ms = int((time.time() - start) * 1000)
-                add_tag("http.latency_ms", elapsed_ms)
+                tags = {
+                    "http.method": method,
+                    "http.url": str(url),
+                    "http.status_code": status,
+                    "http.latency_ms": elapsed_ms,
+                }
+                add_tags(tags)
                 return response
 
         httpx.Client.request = request_with_span
@@ -50,18 +52,20 @@ def auto_instrument_httpx():
         async def async_request_with_span(self, method, url, *args, **kwargs):
             start = time.time()
             with Span("httpx.request"):
-                add_tag("http.method", method)
-                add_tag("http.url", str(url))
                 response = await original_async_request(self, method, url, *args, **kwargs)
-                # Capture status code
+                # Capture status code and latency
                 try:
                     status = response.status_code
                 except Exception:
                     status = None
-                add_tag("http.status_code", status)
-                # Capture latency in milliseconds
                 elapsed_ms = int((time.time() - start) * 1000)
-                add_tag("http.latency_ms", elapsed_ms)
+                tags = {
+                    "http.method": method,
+                    "http.url": str(url),
+                    "http.status_code": status,
+                    "http.latency_ms": elapsed_ms,
+                }
+                add_tags(tags)
                 return response
 
         httpx.AsyncClient.request = async_request_with_span

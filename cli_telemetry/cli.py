@@ -10,10 +10,10 @@ import sqlite3
 import click
 from datetime import datetime
 from cli_telemetry.exporters import speedscope
-from cli_telemetry.exporters import view_flame
-from rich import print
+import tempfile
+from contextlib import redirect_stdout
+import subprocess
 from rich.prompt import Prompt
-from rich.tree import Tree
 import json
 
 
@@ -106,15 +106,21 @@ def main():
     )
     trace_id = traces[trace_choice - 1][0]
 
-    # Load spans and build a tree preserving start-time ordering
+    # Load spans and display folded flame graph using flameshow
     spans = speedscope.load_spans(selected_db, trace_id)
-    # Build tree with aggregated durations and earliest start timestamp
-    root = view_flame.build_tree_from_spans(spans, speedscope.build_path)
-    total = root.get("_time", 0)
-    human_total = view_flame.format_time(total)
-    tree = Tree(f"[b]root[/] • {human_total} (100%)")
-    view_flame.render(root, tree, total)
-    print(tree)
+    # Export folded stacks to temporary file and display with flameshow
+    with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".folded") as tf:
+        with redirect_stdout(tf):
+            speedscope.export_folded(spans)
+        tf.flush()
+        filename = tf.name
+    try:
+        subprocess.run(["flameshow", filename])
+    finally:
+        try:
+            os.remove(filename)
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":

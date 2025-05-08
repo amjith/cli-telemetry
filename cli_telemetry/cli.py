@@ -10,10 +10,9 @@ import sqlite3
 import click
 from datetime import datetime
 from cli_telemetry.exporters import speedscope
+from contextlib import redirect_stdout
 from cli_telemetry.exporters import view_flame
-from rich import print
 from rich.prompt import Prompt
-from rich.tree import Tree
 import json
 
 
@@ -106,15 +105,26 @@ def main():
     )
     trace_id = traces[trace_choice - 1][0]
 
-    # Load spans and build a tree preserving start-time ordering
+    # Load spans and export folded stacks to a file in the current directory
     spans = speedscope.load_spans(selected_db, trace_id)
-    # Build tree with aggregated durations and earliest start timestamp
-    root = view_flame.build_tree_from_spans(spans, speedscope.build_path)
-    total = root.get("_time", 0)
-    human_total = view_flame.format_time(total)
-    tree = Tree(f"[b]root[/] • {human_total} (100%)")
-    view_flame.render(root, tree, total)
-    print(tree)
+    filename = f"trace_{trace_id}.folded"
+    with open(filename, "w") as f:
+        with redirect_stdout(f):
+            speedscope.export_folded(spans)
+    click.echo(f"\nFolded stack file written to {filename}")
+    # Prompt user to view the flame graph using built-in terminal viewer
+    if click.confirm("Do you want to view the flame graph in the terminal now?", default=True):
+        try:
+            # Load spans and build a time-ordered tree view
+            spans = speedscope.load_spans(selected_db, trace_id)
+            root = view_flame.build_tree_from_spans(spans, speedscope.build_path)
+            total = root.get("_time", 0)
+            human_total = view_flame.format_time(total)
+            console_tree = view_flame.Tree(f"[b]root[/] • {human_total} (100%)")
+            view_flame.render(root, console_tree, total)
+            view_flame.print(console_tree)
+        except Exception as e:
+            click.echo(f"Error rendering flame graph: {e}", err=True)
 
 
 if __name__ == "__main__":

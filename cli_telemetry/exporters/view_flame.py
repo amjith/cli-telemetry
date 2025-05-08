@@ -10,7 +10,6 @@ using Rich, with human-friendly time units.
 import sys
 from rich import print
 from rich.tree import Tree
-from rich.columns import Columns
 
 
 def format_time(us: int) -> str:
@@ -71,29 +70,16 @@ def build_tree_from_spans(spans: dict, build_path_func) -> dict:
 
 def render(node, tree: Tree, total_time: int):
     """
-    Recursively render the flame-graph tree. If a node's children are all leaves,
-    display them in a single horizontal row as columns; otherwise recurse normally.
+    Recursively render the flame-graph tree as a nested tree view in the terminal.
     """
+    # Render each child as its own branch, sorted by earliest start time
     children = node.get("children", {})
-    # If all children are leaves, render them as horizontal columns under this node
-    if children and all(not child.get("children") for child in children.values()):
-        # Sort leaves by earliest start time
-        items = sorted(children.items(), key=lambda kv: kv[1].get("_start", 0))
-        cols = []
-        for name, child in items:
-            dur = child["_time"]
-            pct = (dur / total_time * 100) if total_time else 0
-            human = format_time(dur)
-            cols.append(f"[bold]{name}[/] • {human} ({pct:.1f}%)")
-        tree.add(Columns(cols, expand=True))
-    else:
-        # Nested children: render each as its own branch, sorted by earliest start
-        for name, child in sorted(children.items(), key=lambda kv: kv[1].get("_start", 0)):
-            dur = child["_time"]
-            pct = dur / total_time * 100 if total_time else 0
-            human = format_time(dur)
-            branch = tree.add(f"[bold]{name}[/] • {human} ({pct:.1f}%)")
-            render(child, branch, total_time)
+    for name, child in sorted(children.items(), key=lambda kv: kv[1].get("_start", 0)):
+        dur = child["_time"]
+        pct = (dur / total_time * 100) if total_time else 0
+        human = format_time(dur)
+        branch = tree.add(f"[bold]{name}[/] • {human} ({pct:.1f}%)")
+        render(child, branch, total_time)
 
 
 def main():

@@ -70,6 +70,7 @@ def _init_db_file(db_file: str) -> None:
 
 def init_telemetry(service_name: str, db_path: Optional[str] = None, user_id_file: Optional[str] = None) -> None:
     from .instrumentation import init_auto_instrumentation
+
     """
     Initialize trace ID, user‐ID file, and SQLite DB.
     If db_path/user_id_file are provided, uses those; otherwise defaults to:
@@ -269,5 +270,3 @@ def end_session() -> None:
             _conn.close()
         except Exception:
             pass
-
-

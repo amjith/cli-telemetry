@@ -3,15 +3,17 @@ import click
 
 # import this first so it can patch click before any commands are defined
 import cli_telemetry.telemetry as telemetry
-from cli_telemetry.telemetry import profile, add_tag, profile_block
+from cli_telemetry.telemetry import add_tag, profile_block
 
 telemetry.init_telemetry("example-cli")
+
 
 @click.group()
 def cli():
     """Example CLI with telemetry instrumentation."""
     # no manual start_session() or call_on_close() needed any more
     pass
+
 
 @cli.command()
 @click.argument("message")
@@ -20,6 +22,7 @@ def echo(message):
     # Tag the argument so it shows up on this span
     add_tag("args.message", message)
     click.echo(message)
+
 
 @cli.command()
 @click.argument("message")
@@ -30,6 +33,7 @@ def shout(message, times):
     add_tag("args.times", times)
     for _ in range(times):
         click.echo(f"{message.upper()}!")
+
 
 @cli.command()
 def work():
@@ -42,6 +46,7 @@ def work():
         click.echo("step2")
         sleep(0.2)
     click.echo("Work done!")
+
 
 if __name__ == "__main__":
     cli()

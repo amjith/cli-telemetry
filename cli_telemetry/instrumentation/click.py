@@ -4,6 +4,7 @@ Instrumentation for Click commands to auto-wrap their invocation in telemetry sp
 
 from ..telemetry import Span, add_tag
 
+
 def auto_instrument_click():
     """Monkeypatch click.Command and click.Group to auto-wrap in telemetry spans."""
     import os
@@ -17,7 +18,7 @@ def auto_instrument_click():
         def telemetry_wrapper(original_invoke):
             def invoke_with_span(self, ctx):
                 # Assumes init_telemetry() already called by app
-                with Span(self.name, attributes={"cli.command": ctx.command_path}) as span:
+                with Span(self.name, attributes={"cli.command": ctx.command_path}):
                     try:
                         for param in self.params:
                             if param.name in ctx.params:
@@ -25,6 +26,7 @@ def auto_instrument_click():
                     except Exception:
                         pass
                     return original_invoke(self, ctx)
+
             return invoke_with_span
 
         # Avoid double-patching

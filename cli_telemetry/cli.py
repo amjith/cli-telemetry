@@ -105,18 +105,25 @@ def main():
     )
     trace_id = traces[trace_choice - 1][0]
 
-    # Load spans and export folded stacks to a file in the current directory
+    # Load spans and export folded stacks to a central XDG_DATA_HOME directory
     spans = speedscope.load_spans(selected_db, trace_id)
-    filename = f"trace_{trace_id}.folded"
+    # Determine export directory and ensure it exists
+    export_dir = os.path.join(xdg_data_home, "cli-telemetry", "folded-stacks")
+    os.makedirs(export_dir, exist_ok=True)
+    # Include timestamp in filename
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    filename = os.path.join(export_dir, f"trace_{trace_id}_{timestamp}.folded")
+    # Write folded stacks to file
     with open(filename, "w") as f:
         with redirect_stdout(f):
             speedscope.export_folded(spans)
-    click.echo(f"\nFolded stack file written to {filename}")
-    # Prompt user to view the flame graph using built-in terminal viewer
+    # Print absolute path of the generated file
+    abs_path = os.path.abspath(filename)
+    click.echo(f"\nFolded stack file written to {abs_path}")
+    # Prompt user to view the flame graph in the terminal now
     if click.confirm("Do you want to view the flame graph in the terminal now?", default=True):
         try:
-            # Load spans and build a time-ordered tree view
-            spans = speedscope.load_spans(selected_db, trace_id)
+            # Build and render a time-ordered tree view
             root = view_flame.build_tree_from_spans(spans, speedscope.build_path)
             total = root.get("_time", 0)
             human_total = view_flame.format_time(total)

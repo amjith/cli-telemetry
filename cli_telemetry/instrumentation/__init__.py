@@ -1,11 +1,9 @@
-"""
-Automatic instrumentation registry for supported libraries.
-"""
+import logging
 
-import os
+from .instrument_click import auto_instrument_click
+from .instrument_httpx import auto_instrument_httpx
 
-from .click import auto_instrument_click
-
+logger = logging.getLogger(__name__)
 
 def init_auto_instrumentation() -> None:
     """
@@ -13,17 +11,14 @@ def init_auto_instrumentation() -> None:
     Future instrumentation modules should be added here.
     """
     # Click instrumentation
-    if "CLI_TELEMETRY_DISABLE_CLICK_INSTRUMENTATION" not in os.environ:
-        try:
-            auto_instrument_click()
-        except Exception:
-            pass
+    try:
+        auto_instrument_click()
+    except Exception:
+        logger.exception("Failed to instrument Click commands.")
+        pass
 
-    # HTTPX instrumentation
-    from .httpx import auto_instrument_httpx
-
-    if "CLI_TELEMETRY_DISABLE_HTTPX_INSTRUMENTATION" not in os.environ:
-        try:
-            auto_instrument_httpx()
-        except Exception:
-            pass
+    try:
+        auto_instrument_httpx()
+    except Exception:
+        logger.exception("Failed to instrument HTTPX requests.")
+        pass

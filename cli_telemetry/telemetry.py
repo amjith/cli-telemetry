@@ -246,6 +246,11 @@ def add_tag(key: str, value: object) -> None:
     if stack:
         stack[-1].set_attribute(key, value)
 
+def add_tags(tags: dict[str, object]) -> None:
+    """Add or override multiple tags on the current span."""
+    for key, value in tags.items():
+        add_tag(key, value)
+
 
 def start_session(command_name: str, service_name: str = "mycli", db_path: str = None, user_id_file: str = None) -> None:
     """

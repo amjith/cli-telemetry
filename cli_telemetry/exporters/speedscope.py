@@ -86,8 +86,8 @@ def load_spans(db_path: str, trace_id: str):
         # Determine context suffix from attribute, if any
         attr_key = ATTRIBUTE_KEY_MAP.get(raw_name)
         suffix = None
-        if attr_key and attr_key in attrs:
-            val = attrs.get(attr_key)
+        val = attrs.get(attr_key)
+        if val:
             if isinstance(val, (list, tuple)):
                 suffix = " ".join(str(x) for x in val)
             else:
@@ -102,7 +102,7 @@ def load_spans(db_path: str, trace_id: str):
             else:
                 display_name = f"{raw_name} [{idx}]"
         else:
-            display_name = raw_name
+            display_name = f"{raw_name} {suffix}"
         spans[span_id] = {
             "parent": parent_id,
             "name": display_name,

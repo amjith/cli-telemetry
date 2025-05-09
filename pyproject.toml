@@ -3,7 +3,7 @@ name = "cli-telemetry"
 dynamic = ["version"]
 description = "OpenTelemetry-based instrumentation for CLI tools"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "BSD" }
 authors = [{ name = "Amjith Ramanujam", email = "amjith.r@gmail.com" }]
 dependencies = ["rich", "click"]

@@ -18,6 +18,7 @@ Usage:
 import sqlite3
 import argparse
 import sys
+import json
 from datetime import datetime
 
 
@@ -44,11 +45,16 @@ def list_traces(db_path: str):
 
 
 def load_spans(db_path: str, trace_id: str):
+    """
+    Load spans for a given trace_id, annotating display names to dedupe and
+    append a key attribute value for context.
+    """
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
+    # Include attributes JSON for context
     cur.execute(
         """
-        SELECT span_id, parent_span_id, name, start_time, end_time
+        SELECT span_id, parent_span_id, name, start_time, end_time, attributes
           FROM otel_spans
          WHERE trace_id = ?
       ORDER BY start_time
@@ -58,11 +64,48 @@ def load_spans(db_path: str, trace_id: str):
     rows = cur.fetchall()
     conn.close()
 
-    spans = {}
-    for span_id, parent_id, name, start_us, end_us in rows:
+    # Determine which attribute to use for each span type
+    ATTRIBUTE_KEY_MAP = {
+        "subprocess.run": "subprocess.command",
+        "httpx.request": "http.url",
+    }
+
+    # Count raw name occurrences
+    raw_counts: dict[str, int] = {}
+    for _sid, _pid, raw_name, _s, _e, _attrs in rows:
+        raw_counts[raw_name] = raw_counts.get(raw_name, 0) + 1
+    # Track seen count per raw name
+    seen_counts: dict[str, int] = {}
+    spans: dict[str, dict] = {}
+    for span_id, parent_id, raw_name, start_us, end_us, attrs_json in rows:
+        # Parse attributes
+        try:
+            attrs = json.loads(attrs_json)
+        except Exception:
+            attrs = {}
+        # Determine context suffix from attribute, if any
+        attr_key = ATTRIBUTE_KEY_MAP.get(raw_name)
+        suffix = None
+        if attr_key and attr_key in attrs:
+            val = attrs.get(attr_key)
+            if isinstance(val, (list, tuple)):
+                suffix = " ".join(str(x) for x in val)
+            else:
+                suffix = str(val)
+        # Track and compute display name
+        count = raw_counts.get(raw_name, 0)
+        idx = seen_counts.get(raw_name, 0) + 1
+        seen_counts[raw_name] = idx
+        if count > 1:
+            if suffix:
+                display_name = f"{raw_name} {suffix}"
+            else:
+                display_name = f"{raw_name} [{idx}]"
+        else:
+            display_name = raw_name
         spans[span_id] = {
             "parent": parent_id,
-            "name": name,
+            "name": display_name,
             "start": start_us,
             "end": end_us,
         }

@@ -2,6 +2,7 @@ import logging
 
 from .instrument_click import auto_instrument_click
 from .instrument_httpx import auto_instrument_httpx
+from .instrument_subprocess import auto_instrument_subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -21,4 +22,10 @@ def init_auto_instrumentation() -> None:
         auto_instrument_httpx()
     except Exception:
         logger.exception("Failed to instrument HTTPX requests.")
+        pass
+    # Subprocess instrumentation
+    try:
+        auto_instrument_subprocess()
+    except Exception:
+        logger.exception("Failed to instrument subprocess.run.")
         pass

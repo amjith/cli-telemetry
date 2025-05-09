@@ -1,5 +1,6 @@
 from time import sleep
 import click
+import httpx
 
 # import this first so it can patch click before any commands are defined
 import cli_telemetry.telemetry as telemetry
@@ -36,6 +37,13 @@ def shout(message, times):
 
 
 @cli.command()
+def fetch():
+    """Fetch https://example.com to demonstrate HTTPX telemetry."""
+    resp = httpx.get("https://example.com")
+    click.echo(f"Fetched https://example.com [{resp.status_code}]")
+
+
+@cli.command()
 def work():
     """Simulate some nested work using a profile_block."""
     add_tag("phase", "start_work")
@@ -46,6 +54,12 @@ def work():
         click.echo("step2")
         sleep(0.2)
     click.echo("Work done!")
+    # Example HTTPX call; instrumentation will record this as its own span
+    try:
+        resp = httpx.get("https://example.com")
+        click.echo(f"Fetched https://example.com [{resp.status_code}]")
+    except Exception as e:
+        click.echo(f"HTTPX request failed: {e}")
 
 
 if __name__ == "__main__":

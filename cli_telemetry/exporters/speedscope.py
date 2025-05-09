@@ -19,6 +19,7 @@ import sqlite3
 import argparse
 import sys
 import json
+import os
 from datetime import datetime
 
 
@@ -83,6 +84,18 @@ def load_spans(db_path: str, trace_id: str):
             attrs = json.loads(attrs_json)
         except Exception:
             attrs = {}
+        # Extract source file and line if available
+        src_file = attrs.get("source.file")
+        src_line = attrs.get("source.line")
+        if src_file and src_line is not None:
+            # Use absolute path for accuracy
+            try:
+                abs_file = os.path.abspath(src_file)
+            except Exception:
+                abs_file = src_file
+            file_line = f"{abs_file}:{src_line}"
+        else:
+            file_line = None
         # Determine context suffix from attribute, if any
         attr_key = ATTRIBUTE_KEY_MAP.get(raw_name)
         suffix = None
@@ -103,6 +116,9 @@ def load_spans(db_path: str, trace_id: str):
                 display_name = f"{raw_name} [{idx}]"
         else:
             display_name = raw_name + (" " + suffix if suffix else "")
+        # Append source file and line to display name
+        if file_line:
+            display_name = f"{display_name} ({file_line})"
         spans[span_id] = {
             "parent": parent_id,
             "name": display_name,

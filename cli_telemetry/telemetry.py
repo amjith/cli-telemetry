@@ -16,11 +16,57 @@ import threading
 import json
 import time
 import platform
+import inspect
+import sysconfig
+import site
+import os as _os
 from contextlib import contextmanager
 from functools import wraps
 from typing import Optional
 
+# Determine directories to skip when locating user code
+#  - this agent's own package
+#  - Python standard library dirs
+#  - site-packages dirs
 from importlib.metadata import version, PackageNotFoundError
+# Path to this package
+_AGENT_PATH = os.path.dirname(__file__)
+# Standard library paths
+_STDLIB_PATHS = set()
+try:
+    _STDLIB_PATHS.add(sysconfig.get_path('stdlib'))
+    _STDLIB_PATHS.add(sysconfig.get_path('platstdlib'))
+except Exception:
+    pass
+# Site-packages paths
+_SITE_PACKAGES = set()
+try:
+    _SITE_PACKAGES.update(site.getsitepackages())
+except Exception:
+    pass
+# Aggregate all skip paths
+_SKIP_PATHS = {_AGENT_PATH}
+_SKIP_PATHS |= {p for p in _STDLIB_PATHS if p}
+_SKIP_PATHS |= {p for p in _SITE_PACKAGES if p}
+
+
+def _find_user_caller() -> tuple[str, int]:
+    """Walk the call stack to find the first frame outside agent, stdlib, and site-packages."""
+    for frame_info in inspect.stack():
+        filename = frame_info.filename
+        # normalize path
+        try:
+            abspath = _os.path.abspath(filename)
+        except Exception:
+            abspath = filename
+        # skip frames under any of the skip directories
+        if any(abspath.startswith(p) for p in _SKIP_PATHS):
+            continue
+        # Found a user-level frame
+        return abspath, frame_info.lineno
+    # Fallback to immediate caller
+    fr = inspect.currentframe().f_back
+    return fr.f_code.co_filename, fr.f_lineno
 
 # Globals
 _LOCK = threading.Lock()
@@ -135,7 +181,13 @@ class Span:
 
     def __init__(self, name: str, attributes: dict[str, object] = None):
         self.name = name
+        # Initialize attributes and capture source location if not provided
         self.attributes = dict(attributes) if attributes else {}
+        # Auto-capture user code location if not provided
+        if self.attributes.get("source.file") is None or self.attributes.get("source.line") is None:
+            src_file, src_line = _find_user_caller()
+            self.attributes["source.file"] = src_file
+            self.attributes["source.line"] = src_line
         self.parent: Optional[Span] = None
         self.span_id = uuid.uuid4().hex
         self.start_time: Optional[int] = None
@@ -205,7 +257,13 @@ def profile(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        span = Span(func.__name__)
+        # Capture function definition location
+        src_file = func.__code__.co_filename
+        src_line = func.__code__.co_firstlineno
+        span = Span(func.__name__, attributes={
+            "source.file": src_file,
+            "source.line": src_line,
+        })
         span.__enter__()
         try:
             return func(*args, **kwargs)
@@ -224,7 +282,12 @@ def profile(func):
 @contextmanager
 def profile_block(name: str, tags: dict[str, object] = None):
     """Context manager: wrap a block of code in a Span."""
-    span = Span(name)
+    # Determine user invocation location
+    src_file, src_line = _find_user_caller()
+    span = Span(name, attributes={
+        "source.file": src_file,
+        "source.line": src_line,
+    })
     span.__enter__()
     if tags:
         for k, v in tags.items():

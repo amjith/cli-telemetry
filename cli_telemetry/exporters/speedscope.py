@@ -102,7 +102,7 @@ def load_spans(db_path: str, trace_id: str):
             else:
                 display_name = f"{raw_name} [{idx}]"
         else:
-            display_name = f"{raw_name} {suffix}"
+            display_name = raw_name + (" " + suffix if suffix else "")
         spans[span_id] = {
             "parent": parent_id,
             "name": display_name,

@@ -33,9 +33,13 @@ def auto_instrument_httpx():
                 except Exception:
                     status = None
                 elapsed_ms = int((time.time() - start) * 1000)
+                try:
+                    full_url = str(response.url)
+                except Exception:
+                    full_url = str(url)
                 tags = {
                     "http.method": method,
-                    "http.url": str(url),
+                    "http.url": full_url,
                     "http.status_code": status,
                     "http.latency_ms": elapsed_ms,
                 }
@@ -59,9 +63,13 @@ def auto_instrument_httpx():
                 except Exception:
                     status = None
                 elapsed_ms = int((time.time() - start) * 1000)
+                try:
+                    full_url = str(response.url)
+                except Exception:
+                    full_url = str(url)
                 tags = {
                     "http.method": method,
-                    "http.url": str(url),
+                    "http.url": full_url,
                     "http.status_code": status,
                     "http.latency_ms": elapsed_ms,
                 }

@@ -8,7 +8,6 @@ import sqlite3
 import json
 import sys
 import click
-from contextlib import redirect_stdout
 
 def load_spans(db_path: str, trace_id: str):
     """
@@ -94,9 +93,9 @@ def build_path(span_id: str, spans: dict):
         current = spans.get(current["parent"])
     return list(reversed(path))
 
-def export_folded(spans: dict, min_us: int = 1):
+def export_folded(spans: dict, out, min_us: int = 1):
     """
-    Print folded stack entries (Speedscope format):
+    Write folded stack entries (Speedscope format) to a file-like object:
       parent;child;...;span duration_us
     """
     for sid, info in spans.items():
@@ -104,7 +103,7 @@ def export_folded(spans: dict, min_us: int = 1):
         if dur < min_us:
             continue
         stack = build_path(sid, spans)
-        print(f"{';'.join(stack)} {dur}")
+        print(f"{';'.join(stack)} {dur}", file=out)
 
 def register(cli):
     """Register the 'folded' command to generate folded stack files."""
@@ -117,7 +116,7 @@ def register(cli):
         """Generate a folded stack file for a given trace."""
         spans = load_spans(db_file, trace_id)
         if output_file:
-            with open(output_file, 'w') as out, redirect_stdout(out):
-                export_folded(spans, min_us)
+            with open(output_file, 'w') as out:
+                export_folded(spans, out, min_us)
         else:
-            export_folded(spans, min_us)
+            export_folded(spans, sys.stdout, min_us)

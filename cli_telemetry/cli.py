@@ -10,7 +10,6 @@ import sqlite3
 import click
 from datetime import datetime
 from cli_telemetry.plugins.speedscope_plugin import load_spans, export_folded, build_path
-from contextlib import redirect_stdout
 from cli_telemetry.exporters import view_flame
 from rich.prompt import Prompt
 import json
@@ -125,8 +124,7 @@ def _browse():
     filename = os.path.join(export_dir, f"trace_{trace_id}_{timestamp}.folded")
     # Write folded stacks to file
     with open(filename, "w") as f:
-        with redirect_stdout(f):
-            export_folded(spans)
+        export_folded(spans, f)
     # Print absolute path of the generated file
     abs_path = os.path.abspath(filename)
     click.echo(f"\nFolded stack file written to {abs_path}")

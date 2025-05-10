@@ -14,10 +14,20 @@ from contextlib import redirect_stdout
 from cli_telemetry.exporters import view_flame
 from rich.prompt import Prompt
 import json
+# Web interface functionality moved to plugin architecture; see plugins in cli_telemetry.plugins
+@click.group(invoke_without_command=True)
+@click.pass_context
+def main(ctx):
+    """
+    Browse available telemetry databases, visualize traces as flame graphs,
+    or serve a web-based viewer.
+    """
+    if ctx.invoked_subcommand is None:
+        _browse()
 
 
-@click.command()
-def main():
+
+def _browse():
     """
     Browse available telemetry databases and visualize selected traces.
     """
@@ -133,6 +143,52 @@ def main():
         except Exception as e:
             click.echo(f"Error rendering flame graph: {e}", err=True)
 
+
+"""
+See `cli_telemetry.plugins` for available plugins.
+"""
+def _load_plugins(cli_group):
+    """Load built-in and external plugins for cli-telemetry."""
+    # Built-in plugins in cli_telemetry.plugins namespace
+    try:
+        import pkgutil
+        import importlib
+        from cli_telemetry import plugins
+    except ImportError:
+        # plugins namespace not available
+        pass
+    else:
+        for _, name, _ in pkgutil.iter_modules(plugins.__path__):
+            try:
+                module = importlib.import_module(f"cli_telemetry.plugins.{name}")
+                if hasattr(module, "register"):
+                    module.register(cli_group)
+            except Exception as e:
+                click.echo(f"Error loading built-in plugin {name}: {e}", err=True)
+                continue
+
+    # External plugins via setuptools entry points
+    import importlib.metadata as _meta
+    # Retrieve entry points for group 'cli_telemetry.plugins'
+    try:
+        eps = _meta.entry_points(group="cli_telemetry.plugins")
+    except TypeError:
+        # Fallback for older metadata API
+        try:
+            eps = _meta.entry_points().get("cli_telemetry.plugins", [])
+        except Exception:
+            eps = []
+    # Load each external plugin
+    for ep in eps or []:
+        try:
+            plugin = ep.load()
+            plugin(cli_group)
+        except Exception as e:
+            click.echo(f"Error loading plugin {ep.name}: {e}", err=True)
+            continue
+
+# Register plugins to extend CLI
+_load_plugins(main)
 
 if __name__ == "__main__":
     main()

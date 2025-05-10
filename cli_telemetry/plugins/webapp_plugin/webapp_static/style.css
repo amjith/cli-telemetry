@@ -1,0 +1,53 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.error {
+    color: red;
+}
+
+button {
+    margin: 0 5px;
+}
+
+#tracesList, #spanTree {
+    margin-top: 20px;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 20px;
+}
+
+li div {
+    cursor: pointer;
+    padding: 2px;
+}
+
+li div:hover {
+    background-color: #f0f0f0;
+}
+
+/* Layout */
+#main {
+    display: flex;
+}
+#leftPane {
+    flex: 1;
+    padding-right: 20px;
+    border-right: 1px solid #ccc;
+    max-width: 25%;
+}
+#rightPane {
+    flex: 3;
+    padding-left: 20px;
+}
+#attributesPane {
+    white-space: pre-wrap;
+    background: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ddd;
+    max-height: 80vh;
+    overflow: auto;
+}

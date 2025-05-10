@@ -16,7 +16,8 @@ Homepage = "https://github.com/amjith/cli-telemetry"
 Repository = "https://github.com/amjith/cli-telemetry"
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "ruff>=0.11.8", "coverage", "tox>=4.8.0"]
+dev = ["pytest>=7.0", "ruff>=0.11.8", "coverage", "tox>=4.8.0", "flask>=2.0", "flask-cors>=3.0"]
+web = ["flask>=2.0", "flask-cors>=3.0"]
 
 [build-system]
 requires = ["setuptools>=64.0", "wheel", "setuptools-scm>=8"]

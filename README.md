@@ -71,3 +71,40 @@ root • 936.83ms (100%)
 
 ```
 
+## Web-Based Viewer
+
+The web-based telemetry viewer is provided as a plugin. To serve the web UI:
+
+```bash
+cli-telemetry webapp --db-file ~/.local/share/cli-telemetry/<service>/telemetry.db \
+    --host 127.0.0.1 --port 5000
+```
+
+## Plugin Architecture
+
+cli-telemetry supports plugins to extend its CLI:
+
+- Built-in plugins are discovered in the `cli_telemetry.plugins` namespace package.
+- External plugins can be installed and registered via setuptools entry
+  points under the group `cli_telemetry.plugins`.
+
+Plugins must define a `register(cli_group)` function, which takes the main Click
+group and registers commands or options. For example:
+
+```python
+import click
+
+def register(cli):
+    @cli.command()
+    def hello():
+        """A simple hello command."""
+        click.echo("Hello from plugin!")
+```
+
+External plugins should declare their entry point in their packaging:
+
+```toml
+[project.entry-points."cli_telemetry.plugins"]
+myplugin = "my_plugin.module:register"
+```
+

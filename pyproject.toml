@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD" }
 authors = [{ name = "Amjith Ramanujam", email = "amjith.r@gmail.com" }]
-dependencies = ["rich", "click"]
+dependencies = ["rich", "click", "tomli>=2.0"]
 
 [project.scripts]
 cli-telemetry = "cli_telemetry.cli:main"

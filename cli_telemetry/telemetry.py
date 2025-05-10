@@ -338,3 +338,48 @@ def end_session() -> None:
             _conn.close()
         except Exception:
             pass
+
+
+def read_spans(db_file: str, trace_id: str) -> list[dict]:
+    """
+    Load raw spans for a given trace_id from the SQLite database.
+
+    Returns a list of dicts with keys:
+      span_id, parent_span_id, name, start_time, end_time,
+      attributes (dict), status_code, events (list)
+    """
+    # Use Row factory to get dict-like rows for extensibility
+    conn = sqlite3.connect(db_file)
+    conn.row_factory = sqlite3.Row
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT *
+              FROM otel_spans
+             WHERE trace_id = ?
+          ORDER BY start_time
+            """,
+            (trace_id,)
+        )
+        rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    spans: list[dict] = []
+    for row in rows:
+        # Convert sqlite3.Row to a regular dict
+        record = dict(row)
+        # Parse JSON columns if present
+        if "attributes" in record:
+            try:
+                record["attributes"] = json.loads(record.get("attributes") or "{}")
+            except Exception:
+                record["attributes"] = {}
+        if "events" in record:
+            try:
+                record["events"] = json.loads(record.get("events") or "[]")
+            except Exception:
+                record["events"] = []
+        spans.append(record)
+    return spans

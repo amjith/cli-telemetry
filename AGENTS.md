@@ -14,7 +14,7 @@ cli-telemetry is a Python library and command-line interface for collecting, sto
 ## Architecture & Directory Structure
 ```text
 cli_telemetry/           # Main package
-├── cli.py               # Interactive TUI for browsing traces
+├── cli.py               # Core CLI commands and plugin loader
 ├── telemetry.py         # Core API: session/span management
 ├── instrumentation/     # Auto-instrumentation modules
 │   ├── instrument_click.py
@@ -23,10 +23,18 @@ cli_telemetry/           # Main package
 ├── exporters/           # Trace exporters (speedscope, flame)
 │   ├── speedscope.py
 │   └── view_flame.py
+├── plugins/             # Plugin architecture and built-in plugins
+│   ├── __init__.py      # Namespace package for plugins
+│   ├── speedscope_plugin/  # Folded stack export plugin
+│   │   └── plugin.py
+│   └── webapp_plugin/   # Web UI viewer plugin based on Flask
+│       ├── plugin.py
+│       └── webapp_static/
 └── __main__.py          # `python -m cli_telemetry` entrypoint
 
 examples/                # Sample scripts demonstrating usage
 tests/                   # Pytest suite for core functionality
+AGENTS.md                # LLM context about architecture and usage
 README.md                # Project overview and example
 TODO.md                  # Planned enhancements
 tox.ini                  # Testing and linting configuration
@@ -67,6 +75,33 @@ pip install cli-telemetry
    ```bash
    cli-telemetry
    ```
+
+## Plugin Architecture
+
+cli-telemetry supports extensible plugins to extend its CLI:
+
+- Built-in plugins are discovered in the `cli_telemetry.plugins` namespace package via Python’s `pkgutil`.
+- External plugins can be installed via setuptools entry points in the `cli_telemetry.plugins` group.
+- Plugins must define a `register(cli_group)` function that attaches commands or options to the main Click group.
+
+Example plugin:
+
+```python
+import click
+
+def register(cli):
+    @cli.command()
+    def hello():
+        """Simple hello command from a plugin."""
+        click.echo("Hello from plugin!")
+```
+
+To enable an external plugin, declare its entry point in your package:
+
+```toml
+[project.entry-points."cli_telemetry.plugins"]
+myplugin = "my_plugin.module:register"
+```
 
 ## Testing
 Run the test suite with:

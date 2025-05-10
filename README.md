@@ -80,6 +80,19 @@ cli-telemetry webapp --db-file ~/.local/share/cli-telemetry/<service>/telemetry.
     --host 127.0.0.1 --port 5000
 ```
 
+## Folded Stack Exporter
+
+The folded stack exporter is provided as a plugin. It generates a flame-graph style folded stacks file.
+
+```bash
+cli-telemetry folded \
+  --db-file ~/.local/share/cli-telemetry/<service>/telemetry.db \
+  --trace-id YOUR_TRACE_ID \
+  --output-file trace.folded
+```
+
+Omit `--output-file` to print the folded stacks to stdout.
+
 ## Plugin Architecture
 
 cli-telemetry supports plugins to extend its CLI:

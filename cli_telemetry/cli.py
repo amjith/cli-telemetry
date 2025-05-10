@@ -9,7 +9,7 @@ import os
 import sqlite3
 import click
 from datetime import datetime
-from cli_telemetry.exporters import speedscope
+from cli_telemetry.plugins.speedscope_plugin import load_spans, export_folded, build_path
 from contextlib import redirect_stdout
 from cli_telemetry.exporters import view_flame
 from rich.prompt import Prompt
@@ -116,7 +116,7 @@ def _browse():
     trace_id = traces[trace_choice - 1][0]
 
     # Load spans and export folded stacks to a central XDG_DATA_HOME directory
-    spans = speedscope.load_spans(selected_db, trace_id)
+    spans = load_spans(selected_db, trace_id)
     # Determine export directory and ensure it exists
     export_dir = os.path.join(xdg_data_home, "cli-telemetry", "folded-stacks")
     os.makedirs(export_dir, exist_ok=True)
@@ -126,7 +126,7 @@ def _browse():
     # Write folded stacks to file
     with open(filename, "w") as f:
         with redirect_stdout(f):
-            speedscope.export_folded(spans)
+            export_folded(spans)
     # Print absolute path of the generated file
     abs_path = os.path.abspath(filename)
     click.echo(f"\nFolded stack file written to {abs_path}")
@@ -134,7 +134,7 @@ def _browse():
     if click.confirm("Do you want to view the flame graph in the terminal now?", default=True):
         try:
             # Build and render a time-ordered tree view
-            root = view_flame.build_tree_from_spans(spans, speedscope.build_path)
+            root = view_flame.build_tree_from_spans(spans, build_path)
             total = root.get("_time", 0)
             human_total = view_flame.format_time(total)
             console_tree = view_flame.Tree(f"[b]root[/] • {human_total} (100%)")

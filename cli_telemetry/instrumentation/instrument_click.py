@@ -21,11 +21,7 @@ def auto_instrument_click():
                 with Span(self.name, attributes={"cli.command": ctx.command_path}):
                     try:
                         # Collect all CLI args as tags
-                        tags = {
-                            f"args.{param.name}": ctx.params[param.name]
-                            for param in self.params
-                            if param.name in ctx.params
-                        }
+                        tags = {f"args.{param.name}": ctx.params[param.name] for param in self.params if param.name in ctx.params}
                         if tags:
                             add_tags(tags)
                     except Exception:

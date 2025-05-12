@@ -6,6 +6,7 @@ from .instrument_subprocess import auto_instrument_subprocess
 
 logger = logging.getLogger(__name__)
 
+
 def init_auto_instrumentation() -> None:
     """
     Initialize automatic instrumentation for all supported libraries.

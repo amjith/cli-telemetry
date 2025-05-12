@@ -1,10 +1,12 @@
 """
 Instrumentation for subprocess.run to auto-wrap calls in telemetry spans.
 """
+
 import os
 import time
 
 from ..telemetry import Span, add_tags
+
 
 def auto_instrument_subprocess():
     """Monkeypatch subprocess.run to auto-wrap calls in telemetry spans."""

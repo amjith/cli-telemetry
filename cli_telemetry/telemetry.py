@@ -29,13 +29,14 @@ from typing import Optional
 #  - Python standard library dirs
 #  - site-packages dirs
 from importlib.metadata import version, PackageNotFoundError
+
 # Path to this package
 _AGENT_PATH = os.path.dirname(__file__)
 # Standard library paths
 _STDLIB_PATHS = set()
 try:
-    _STDLIB_PATHS.add(sysconfig.get_path('stdlib'))
-    _STDLIB_PATHS.add(sysconfig.get_path('platstdlib'))
+    _STDLIB_PATHS.add(sysconfig.get_path("stdlib"))
+    _STDLIB_PATHS.add(sysconfig.get_path("platstdlib"))
 except Exception:
     pass
 # Site-packages paths
@@ -67,6 +68,7 @@ def _find_user_caller() -> tuple[str, int]:
     # Fallback to immediate caller
     fr = inspect.currentframe().f_back
     return fr.f_code.co_filename, fr.f_lineno
+
 
 # Globals
 _LOCK = threading.Lock()
@@ -260,10 +262,13 @@ def profile(func):
         # Capture function definition location
         src_file = func.__code__.co_filename
         src_line = func.__code__.co_firstlineno
-        span = Span(func.__name__, attributes={
-            "source.file": src_file,
-            "source.line": src_line,
-        })
+        span = Span(
+            func.__name__,
+            attributes={
+                "source.file": src_file,
+                "source.line": src_line,
+            },
+        )
         span.__enter__()
         try:
             return func(*args, **kwargs)
@@ -284,10 +289,13 @@ def profile_block(name: str, tags: dict[str, object] = None):
     """Context manager: wrap a block of code in a Span."""
     # Determine user invocation location
     src_file, src_line = _find_user_caller()
-    span = Span(name, attributes={
-        "source.file": src_file,
-        "source.line": src_line,
-    })
+    span = Span(
+        name,
+        attributes={
+            "source.file": src_file,
+            "source.line": src_line,
+        },
+    )
     span.__enter__()
     if tags:
         for k, v in tags.items():
@@ -308,6 +316,7 @@ def add_tag(key: str, value: object) -> None:
     stack = _get_span_stack()
     if stack:
         stack[-1].set_attribute(key, value)
+
 
 def add_tags(tags: dict[str, object]) -> None:
     """Add or override multiple tags on the current span."""
@@ -360,7 +369,7 @@ def read_spans(db_file: str, trace_id: str) -> list[dict]:
              WHERE trace_id = ?
           ORDER BY start_time
             """,
-            (trace_id,)
+            (trace_id,),
         )
         rows = cur.fetchall()
     finally:

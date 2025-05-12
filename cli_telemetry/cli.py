@@ -11,6 +11,7 @@ import click
 from datetime import datetime
 from pathlib import Path
 import json
+
 # TOML parsing: stdlib tomllib (3.11+) or tomli
 try:
     import tomllib
@@ -19,8 +20,9 @@ except ModuleNotFoundError:
 from cli_telemetry.plugins.speedscope_plugin import load_spans, export_folded, build_path
 from cli_telemetry.exporters import view_flame
 from rich.prompt import Prompt
-import json
- # Web interface functionality moved to plugin architecture; see plugins in cli_telemetry.plugins
+
+
+# Web interface functionality moved to plugin architecture; see plugins in cli_telemetry.plugins
 @click.group(invoke_without_command=True)
 @click.pass_context
 def main(ctx):
@@ -32,19 +34,19 @@ def main(ctx):
     ctx.ensure_object(dict)
     cfg: dict = {}
     # Global config: ~/.config/cli-telemetry/config.toml
-    xdg = os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
-    global_path = Path(xdg) / 'cli-telemetry' / 'config.toml'
+    xdg = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+    global_path = Path(xdg) / "cli-telemetry" / "config.toml"
     if global_path.is_file():
         try:
-            with open(global_path, 'rb') as f:
+            with open(global_path, "rb") as f:
                 cfg = tomllib.load(f)
         except Exception:
             cfg = {}
     # Local overrides: ./ .cli-telemetry.toml
-    local_path = Path.cwd() / '.cli-telemetry.toml'
+    local_path = Path.cwd() / ".cli-telemetry.toml"
     if local_path.is_file():
         try:
-            with open(local_path, 'rb') as f:
+            with open(local_path, "rb") as f:
                 local_cfg = tomllib.load(f)
         except Exception:
             local_cfg = {}
@@ -55,11 +57,10 @@ def main(ctx):
                     cfg[key].update(val)
                 else:
                     cfg[key] = val
-    ctx.obj['config'] = cfg
+    ctx.obj["config"] = cfg
     # If no subcommand, open browse UI
     if ctx.invoked_subcommand is None:
         _browse()
-
 
 
 def _browse():
@@ -181,6 +182,8 @@ def _browse():
 """
 See `cli_telemetry.plugins` for available plugins.
 """
+
+
 def _load_plugins(cli_group):
     """Load built-in and external plugins for cli-telemetry."""
     # Built-in plugins in cli_telemetry.plugins namespace
@@ -203,6 +206,7 @@ def _load_plugins(cli_group):
 
     # External plugins via setuptools entry points
     import importlib.metadata as _meta
+
     # Retrieve entry points for group 'cli_telemetry.plugins'
     try:
         eps = _meta.entry_points(group="cli_telemetry.plugins")
@@ -220,6 +224,7 @@ def _load_plugins(cli_group):
         except Exception as e:
             click.echo(f"Error loading plugin {ep.name}: {e}", err=True)
             continue
+
 
 # Register plugins to extend CLI
 _load_plugins(main)

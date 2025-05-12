@@ -3,11 +3,13 @@ Folded stack generator plugin for cli-telemetry.
 Provides functions to load spans and export folded stacks, and
 a CLI command to generate folded stack files.
 """
+
 import os
 import sqlite3
 import json
 import sys
 import click
+
 
 def load_spans(db_path: str, trace_id: str):
     """
@@ -84,6 +86,7 @@ def load_spans(db_path: str, trace_id: str):
         }
     return spans
 
+
 def build_path(span_id: str, spans: dict):
     """Construct the full stack path of names for the given span."""
     path = []
@@ -92,6 +95,7 @@ def build_path(span_id: str, spans: dict):
         path.append(current["name"])
         current = spans.get(current["parent"])
     return list(reversed(path))
+
 
 def export_folded(spans: dict, out, min_us: int = 1):
     """
@@ -105,18 +109,20 @@ def export_folded(spans: dict, out, min_us: int = 1):
         stack = build_path(sid, spans)
         print(f"{';'.join(stack)} {dur}", file=out)
 
+
 def register(cli):
     """Register the 'folded' command to generate folded stack files."""
-    @cli.command(name='folded')
-    @click.option('--db-file', required=True, help='Path to telemetry.db file')
-    @click.option('--trace-id', 'trace_id', required=True, help='Trace ID to export')
-    @click.option('--output-file', default=None, help='File to write folded stacks (stdout otherwise)')
-    @click.option('--min-us', default=1, type=int, help='Minimum span duration to include (µs)')
+
+    @cli.command(name="folded")
+    @click.option("--db-file", required=True, help="Path to telemetry.db file")
+    @click.option("--trace-id", "trace_id", required=True, help="Trace ID to export")
+    @click.option("--output-file", default=None, help="File to write folded stacks (stdout otherwise)")
+    @click.option("--min-us", default=1, type=int, help="Minimum span duration to include (µs)")
     def folded(db_file, trace_id, output_file, min_us):
         """Generate a folded stack file for a given trace."""
         spans = load_spans(db_file, trace_id)
         if output_file:
-            with open(output_file, 'w') as out:
+            with open(output_file, "w") as out:
                 export_folded(spans, out, min_us)
         else:
             export_folded(spans, sys.stdout, min_us)
